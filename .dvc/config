@@ -1,0 +1,8 @@
+[core]
+    remote = myremote
+    site_cache_dir = .dvc\site_cache
+['remote "myremote"']
+    url = s3://mlops-priyanka-bucket
+    access_key_id = ASIA4MTWJZ7YXBN4CJQH
+    secret_access_key = BiMaipleOljS7vNGy6A63ayRWo+MgB81T/uplsAs
+    region = ap-south-1
