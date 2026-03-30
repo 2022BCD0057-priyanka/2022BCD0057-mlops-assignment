@@ -61,3 +61,4 @@ def train():
 
 if __name__ == "__main__":
     train()
+print("Training completed and model saved to models/model.pkl")
