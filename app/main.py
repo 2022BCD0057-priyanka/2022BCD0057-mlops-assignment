@@ -1,27 +1,29 @@
 from fastapi import FastAPI
-import pickle
-import numpy as np
+import joblib
 
 app = FastAPI()
 
-# Load model
-with open("artifacts/model.pkl", "rb") as f:
-    model = pickle.load(f)
+# REQUIRED IDENTIFICATION
+NAME = "Priyanka"
+ROLL = "2022BCD0057"
 
+# Load model
+model = joblib.load("models/model.pkl")
+
+# Health Endpoint
 @app.get("/")
 def health():
     return {
-        "name": "Priyanka Kumari",
-        "roll_no": "2022BCD0057"
+        "name": NAME,
+        "roll": ROLL
     }
 
+# Prediction Endpoint
 @app.post("/predict")
-def predict(features: list):
-    features = np.array(features).reshape(1, -1)
-    prediction = model.predict(features)
-
+def predict(data: list):
+    prediction = model.predict([data]).tolist()
     return {
-        "prediction": prediction.tolist(),
-        "name": "Priyanka Kumari",
-        "roll_no": "2022BCD0057"
+        "prediction": prediction,
+        "name": NAME,
+        "roll": ROLL
     }

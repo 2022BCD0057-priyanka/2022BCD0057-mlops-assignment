@@ -24,15 +24,26 @@ jobs:
         pip install -r requirements.txt
         pip install dvc[s3] mlflow
 
-    # ✅ REQUIRED (Assignment Page 3)
+    # ✅ Fix: Setup AWS for DVC
+    - name: Configure AWS
+      run: |
+        dvc remote modify myremote access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        dvc remote modify myremote secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     - name: DVC Pull
       run: dvc pull
 
-    # ✅ Training
     - name: Run Training
       run: python src/train.py
 
-    # ✅ Summary with identification (MANDATORY Page 2)
+    # ✅ Fix: Create artifacts folder
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p artifacts
+        cp metrics.json artifacts/
+        cp models/model.pkl artifacts/
+
+    # ✅ Summary (MANDATORY)
     - name: Training Summary
       run: |
         echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
@@ -60,7 +71,7 @@ jobs:
         name: artifacts
         path: artifacts
 
-    # ✅ Metric comparison (basic CD logic)
+    # ✅ Fix: correct metric key
     - name: Read Metrics
       run: |
         python - <<EOF
@@ -68,20 +79,21 @@ jobs:
         with open("artifacts/metrics.json") as f:
             m = json.load(f)
         with open(os.environ["GITHUB_ENV"], "a") as env:
-            env.write(f"R2={m['R2_Score']}\n")
+            env.write(f"R2={m['r2']}\n")
         EOF
 
     - name: Deploy Decision
       run: |
         echo "Deploying model with R2 = $R2"
 
-    # ✅ Docker (MANDATORY Page 5)
+    # ✅ Docker Login
     - name: Login Docker
       uses: docker/login-action@v3
       with:
         username: 2022bcd0057priyanka
         password: ${{ secrets.DOCKER_TOKEN }}
 
+    # ✅ Build & Push
     - name: Build & Push
       uses: docker/build-push-action@v5
       with:

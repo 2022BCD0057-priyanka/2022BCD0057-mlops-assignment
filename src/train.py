@@ -1,42 +1,54 @@
+import pandas as pd
 import mlflow
 import mlflow.sklearn
-import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+import joblib
+import json
 
+# REQUIRED IDENTIFICATION
+NAME = "Priyanka"
+ROLL = "2022BCD0057"
+
+# MLflow setup
 mlflow.set_experiment("2022BCD0057_experiment")
 
-def train(data_path, model_type="lr", features=None):
+# Load dataset
+df = pd.read_csv("data/data.csv")
 
-    df = pd.read_csv(data_path)
+# Split
+X = df.drop("price", axis=1)
+y = df["price"]
 
-    X = df.drop("median_house_value", axis=1)
-    y = df["median_house_value"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    if features:
-        X = X[features]
+# Model
+model = RandomForestRegressor(n_estimators=100)
+model.fit(X_train, y_train)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
+# Predictions
+preds = model.predict(X_test)
 
-    if model_type == "lr":
-        model = LinearRegression()
-    else:
-        model = RandomForestRegressor(n_estimators=100)
+# Metrics
+mse = mean_squared_error(y_test, preds)
+r2 = r2_score(y_test, preds)
 
-    with mlflow.start_run():
-        model.fit(X_train, y_train)
+# MLflow logging
+with mlflow.start_run():
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_metric("mse", mse)
+    mlflow.log_metric("r2", r2)
+    mlflow.sklearn.log_model(model, "model")
 
-        preds = model.predict(X_test)
+# Save model
+joblib.dump(model, "models/model.pkl")
 
-        rmse = mean_squared_error(y_test, preds, squared=False)
-        r2 = r2_score(y_test, preds)
-
-        mlflow.log_param("model", model_type)
-        mlflow.log_metric("rmse", rmse)
-        mlflow.log_metric("r2", r2)
-
-        mlflow.sklearn.log_model(model, "model")
-
-        print("Run complete")
+# Save metrics (MANDATORY)
+with open("metrics.json", "w") as f:
+    json.dump({
+        "mse": mse,
+        "r2": r2,
+        "name": NAME,
+        "roll": ROLL
+    }, f)
