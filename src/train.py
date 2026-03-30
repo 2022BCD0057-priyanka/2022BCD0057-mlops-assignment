@@ -1,54 +1,63 @@
-import pandas as pd
 import mlflow
-import mlflow.sklearn
+import pandas as pd
+import argparse
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score
 import joblib
-import json
 
-# REQUIRED IDENTIFICATION
-NAME = "Priyanka"
-ROLL = "2022BCD0057"
+parser = argparse.ArgumentParser()
+parser.add_argument("--data", type=str, default="data/data_v1.csv")
+parser.add_argument("--model", type=str, default="rf")
+parser.add_argument("--n_estimators", type=int, default=100)
+args = parser.parse_args()
 
-# MLflow setup
 mlflow.set_experiment("2022BCD0057_experiment")
 
-# Load dataset
-df = pd.read_csv("data/data.csv")
+def train():
+    df = pd.read_csv(args.data)
 
-# Split
-X = df.drop("price", axis=1)
-y = df["price"]
+    X = df.drop("Outcome", axis=1)
+    y = df["Outcome"]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    # Feature selection (for one run)
+    if "v2" in args.data:
+        X = X[["Glucose", "BMI", "Age"]]
 
-# Model
-model = RandomForestRegressor(n_estimators=100)
-model.fit(X_train, y_train)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-# Predictions
-preds = model.predict(X_test)
+    if args.model == "rf":
+        model = RandomForestClassifier(n_estimators=args.n_estimators)
+    else:
+        model = LogisticRegression()
 
-# Metrics
-mse = mean_squared_error(y_test, preds)
-r2 = r2_score(y_test, preds)
+    model.fit(X_train, y_train)
 
-# MLflow logging
-with mlflow.start_run():
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_metric("mse", mse)
-    mlflow.log_metric("r2", r2)
-    mlflow.sklearn.log_model(model, "model")
+    preds = model.predict(X_test)
 
-# Save model
-joblib.dump(model, "models/model.pkl")
+    acc = accuracy_score(y_test, preds)
+    prec = precision_score(y_test, preds)
 
-# Save metrics (MANDATORY)
-with open("metrics.json", "w") as f:
-    json.dump({
-        "mse": mse,
-        "r2": r2,
-        "name": NAME,
-        "roll": ROLL
-    }, f)
+    with mlflow.start_run():
+        mlflow.log_param("model", args.model)
+        mlflow.log_param("n_estimators", args.n_estimators)
+        mlflow.log_param("dataset", args.data)
+
+        mlflow.log_metric("accuracy", acc)
+        mlflow.log_metric("precision", prec)
+
+        joblib.dump(model, "models/model.pkl")
+        mlflow.log_artifact("models/model.pkl")
+
+    # Save metrics JSON (IMPORTANT requirement)
+    with open("metrics.json", "w") as f:
+        f.write(f"""{{
+            "accuracy": {acc},
+            "precision": {prec},
+            "Name": "Priyanka Kumari",
+            "Roll No": "2022BCD0057"
+        }}""")
+
+if __name__ == "__main__":
+    train()

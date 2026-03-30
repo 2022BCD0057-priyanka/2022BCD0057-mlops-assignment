@@ -3,27 +3,20 @@ import joblib
 
 app = FastAPI()
 
-# REQUIRED IDENTIFICATION
-NAME = "Priyanka"
-ROLL = "2022BCD0057"
-
-# Load model
 model = joblib.load("models/model.pkl")
 
-# Health Endpoint
 @app.get("/")
 def health():
     return {
-        "name": NAME,
-        "roll": ROLL
+        "Name": "Priyanka Kumari",
+        "Roll No": "2022BCD0057"
     }
 
-# Prediction Endpoint
 @app.post("/predict")
 def predict(data: list):
-    prediction = model.predict([data]).tolist()
+    pred = model.predict([data])
     return {
-        "prediction": prediction,
-        "name": NAME,
-        "roll": ROLL
+        "prediction": int(pred[0]),
+        "Name": "Priyanka Kumari",
+        "Roll No": "2022BCD0057"
     }
